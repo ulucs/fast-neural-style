@@ -64,8 +64,10 @@ local function main(params)
 	yc = nil
 
 	-- Our criterion is MSE, we set it and the gradients up here
-	local criterion = nn.ParallelCriterion() -- this allows repeating the same criterion
-	criterion:add(nn.MSECriterion())
+	local criterion = nn.ParallelCriterion()
+	for i = 1, #losslayers do
+		criterion:add(nn.MSECriterion())
+	end
 	criterion:float()
 	local optParams, gradParams = transfer_model:getParameters()
 

@@ -50,6 +50,7 @@ function prepare_VGG16(style_weight,content_weight,tv_weight,protofile,modelfile
 	local style_layers = style_layers_t:split(",")
 
 	local cnn = loadcaffe.load(protofile, modelfile):float()
+	local netsize = 128*256*256
 
 	local next_content_idx, next_style_idx = 1, 1
 	local netlayers = {}
@@ -59,7 +60,7 @@ function prepare_VGG16(style_weight,content_weight,tv_weight,protofile,modelfile
 	-- Output TV_Loss
 	print("Setting up TV layer")
 	table.insert(losslayers,"tv")
-	netoutputs[#netoutputs+1] = nn.MulConstant(tv_weight)(netlayers[#netlayers])
+	netoutputs[#netoutputs+1] = nn.MulConstant(tv_weight/(3*256*256))(netlayers[#netlayers])
 	for i = 1, #cnn do
 		if next_content_idx <= #content_layers or next_style_idx <= #style_layers then
 			local layer = cnn:get(i)
@@ -69,14 +70,14 @@ function prepare_VGG16(style_weight,content_weight,tv_weight,protofile,modelfile
 				-- Output content losses
 				print("Setting up content layer", i, ":", layer.name)
 				table.insert(losslayers,"content")
-				netoutputs[#netoutputs+1] = nn.MulConstant(content_weight)(netlayers[#netlayers])
+				netoutputs[#netoutputs+1] = nn.MulConstant(content_weight/(netsize/4))(netlayers[#netlayers])
 				next_content_idx = next_content_idx + 1
 			end
 			if name == style_layers[next_style_idx] then
 				-- Output style losses
 				print("Setting up style layer  ", i, ":", layer.name)
 				table.insert(losslayers,"style")
-				netoutputs[#netoutputs+1] = nn.MulConstant(style_weight)(GramMatrix()(netlayers[#netlayers]))
+				netoutputs[#netoutputs+1] = nn.MulConstant(style_weight/(netsize/2^(next_style_idx)))(GramMatrix()(netlayers[#netlayers]))
 				next_style_idx = next_style_idx + 1
 			end
 		end
